@@ -1,0 +1,31 @@
+Incident Report Summary: Security Findings on [AWS Account]
+Date of Incidents: June 20th to June 21st, 2026.
+Findings have been categorized by severity as per AWS security best practices and MITRE ATT&CK framework attributes where applicable. Below are the findings summarized with respective mitigation strategies provided for each case:
+
+**Critical Severity Findings (MITRE ID T1562.007): Disable or Modify Cloud Firewall Rules**  
+- **Finding Summary**: On June 20th, at approximately 12:15 PM UTC, the security group rule for 'User ARJUN' has been found to open inbound traffic from any source on port(s) utilized by AWS services (0.0.0.0/0). This creates a substantial risk allowing unauthorized access across all IP addresses without proper filtering or controls.
+- **Mitigation Steps**: 
+  1. Immediorly remove the inbound security group rule that allows traffic from anywhere to 'User ARJUN's resources, and modify it back with appropriate sources (e.g., only specific IP ranges) allowed as per organizational policy or use network ACL for finer control if necessary.
+  2. Review current AWS CloudTrail logs around the time of incident occurrence to identify any associated activities that might have been performed using this open rule, such as access attempts from unauthorized sources. 
+  3. Audit and validate user privileges ensuring only 'User ARJUN' or relevant personnel can create security group rules if required for their role. Consider enforcing the principle of least privilege to minimize risk exposure in future occurrences.
+
+**High Severity Findings (MITRE ID T1556): Modify Authentication Processes and Implement Multi-Factor Authentication (MFA)**  
+Several instances were observed where 'soc-project-user' logged into the AWS Console without employing MFA from IP 203.0.113.5, which suggests potential unauthorized access or credential mismanagement:
+
+Finding Summaries and Mitigation Steps for each occurrence (all on June 20th):  
+- Four separate instances of 'soc-project-user' accessing the AWS Console without MFA indicate a persistent security concern. Each time, multiple attempts were made within minutes after one another at different times:  
+    - **10:37 AM** and **10:40 AM UTC** respectively by using IP 203.0.113.5 for access without MFA authentication – this is highly unusual behavior that needs immediate attention as it could signify a brute force attack or credential theft attempt on 'soc-project-user'.
+    - **Mitigation Steps:** 
+      i) Terminate any existing session(s), if possible, associated with these login attempts.  
+     ii) Enforce multi-factor authentication (MFA) for all users to add an extra layer of security against unauthorized access and credential misuse by verifying the identity beyond simple username/password credentials in AWS Console or relevant application settings wherever applicable. 
+    iii) Investigate if there are any commonalities between these events such as similar IP addresses, devices used for login attempts, user account activity patterns etc., which could potentially point towards a broader security threat that needs to be addressed holistically like credential stuffing or hijacked credentials.  
+- **Mitigation Steps**: 
+    iv) In addition to enforcing MFA globally and terminating any sessions associated with these incidents, conduct user education on best practices for password management including using unique passwords across services (to prevent credential stuffing), recognizing phishing attempts, ensuring two-factor authentication is enabled wherever required. 
+    v) Review recent changes in access patterns to 'soc-project-user', monitor network and system logs around the time of these events for any signs indicating a breach or unauthorized activity attempt on user accounts/network infrastructure that could be exploited further, including potential lateral movement within your environment.
+  
+**Other Notable Recommendations:** 
+- Conduct regular security training and awareness sessions to reinforce good practices amongst users regarding access controls and MFA usage.   
+- Periodically audit user activity logs in conjunction with AWS CloudTrail for detecting anomalous behavior patterns that are not aligned with normal work activities or expectations of the role assigned within your organization's policy framework.  
+- Review and update incident response plan to ensure rapid mitigation actions can be taken, including immediate MFA enforcement upon detection of suspicious activity as well as revoking unnecessary permissions when a user’s access patterns deviate from normative behaviors without legitimate reason or explicit authorization.
+
+Following these recommendations will significantly bolster the security posture and help in preventing similar occurrences moving forward within your AWS environment while reducing overall risk profile for cloud resource management activities.

@@ -1,0 +1,93 @@
+import json
+import boto3
+import uuid
+import gzip
+import base64
+from datetime import datetime
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('security-findings')
+sns = boto3.client('sns')
+SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:security-alerts'
+
+
+def process_finding(finding):
+    table.put_item(Item=finding)
+    sns.publish(
+        TopicArn=SNS_TOPIC_ARN,
+        Subject=f"[SOC Alert] {finding['severity']} - {finding['event_name']}",
+        Message=finding['summary']
+    )
+    print(json.dumps(finding, indent=2))
+
+
+def handle_cloudtrail_detail(detail):
+    event_name = detail.get('eventName')
+    finding = None
+
+    if event_name == 'ConsoleLogin':
+        mfa_used = detail.get('additionalEventData', {}).get('MFAUsed', 'Unknown')
+        user_name = detail.get('userIdentity', {}).get('userName', 'Unknown')
+        source_ip = detail.get('sourceIPAddress', 'Unknown')
+
+        if mfa_used == 'No':
+            finding = {
+                'finding_id': str(uuid.uuid4()),
+                'timestamp': datetime.utcnow().isoformat(),
+                'severity': 'High',
+                'mitre_technique': 'T1556 - Modify Authentication Process',
+                'event_name': event_name,
+                'user_name': user_name,
+                'source_ip': source_ip,
+                'summary': f"User '{user_name}' logged into the AWS Console without MFA from IP {source_ip}."
+            }
+
+    elif event_name == 'AuthorizeSecurityGroupIngress':
+        user_name = detail.get('userIdentity', {}).get('userName', 'Unknown')
+        request_params = detail.get('requestParameters', {})
+        ip_permissions = request_params.get('ipPermissions', {}).get('items', [])
+
+        opened_to_world = False
+        for perm in ip_permissions:
+            ranges = perm.get('ipRanges', {}).get('items', [])
+            for r in ranges:
+                if r.get('cidrIp') == '0.0.0.0/0':
+                    opened_to_world = True
+
+        if opened_to_world:
+            finding = {
+                'finding_id': str(uuid.uuid4()),
+                'timestamp': datetime.utcnow().isoformat(),
+                'severity': 'Critical',
+                'mitre_technique': 'T1562.007 - Impair Defenses: Disable or Modify Cloud Firewall',
+                'event_name': event_name,
+                'user_name': user_name,
+                'source_ip': detail.get('sourceIPAddress', 'Unknown'),
+                'summary': f"User '{user_name}' opened a security group rule to the entire internet (0.0.0.0/0)."
+            }
+
+    return finding
+
+
+def lambda_handler(event, context):
+    if 'awslogs' in event:
+        compressed_payload = base64.b64decode(event['awslogs']['data'])
+        uncompressed_payload = gzip.decompress(compressed_payload)
+        log_data = json.loads(uncompressed_payload)
+
+        for log_event in log_data.get('logEvents', []):
+            detail = json.loads(log_event['message'])
+            finding = handle_cloudtrail_detail(detail)
+            if finding:
+                process_finding(finding)
+
+    elif 'detail' in event:
+        detail = event.get('detail', {})
+        finding = handle_cloudtrail_detail(detail)
+        if finding:
+            process_finding(finding)
+
+    else:
+        print("Unrecognized event format.")
+
+    return {'message': 'Processed'}
