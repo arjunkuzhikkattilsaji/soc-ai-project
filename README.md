@@ -4,7 +4,7 @@ A lightweight, zero-cost recreation of AWS GuardDuty-style threat detection, bui
 
 ## Why This Project Exists
 
-AWS GuardDuty is a managed threat detection service — but it's only free for a 30-day trial, after which it bills per GB of data analyzed. Rather than pay for it, this project demonstrates the same underlying detection mechanics by building them from scratch using AWS's permanently free-tier services, plus a local large language model (via Ollama) to generate human-readable incident reports — the kind a SOC Tier 1 analyst would write for a shift handoff.
+AWS GuardDuty is a managed threat detection service — but it's only free for a 30-day trial, after which it bills per GB of data analyzed. Rather than pay for it, this project demonstrates the same underlying detection mechanics by building them from scratch using AWS's permanently free-tier services, plus a local large language model (via Ollama) to generate human-readable incident reports, the kind a SOC Tier 1 analyst would write for a shift handoff.
 
 This project is not intended to replace GuardDuty in a production environment. It exists to demonstrate a working understanding of how managed cloud threat detection actually works under the hood.
 
@@ -89,7 +89,7 @@ During development, the no-MFA login detection was originally built using EventB
 
 The fix was to switch that specific detection to a different, equally valid AWS-native delivery method: a CloudTrail Trail delivering logs to CloudWatch Logs, with a Subscription Filter triggering Lambda directly. This required restructuring the Lambda function to handle two different incoming event formats (EventBridge's `detail` structure vs. CloudWatch Logs' base64/gzip-encoded `awslogs` payload) in a single function.
 
-This troubleshooting process — methodically isolating the failure point across CloudTrail, EventBridge, IAM permissions, and Lambda logs — is, if anything, a stronger demonstration of real-world cloud security skills than if the original approach had worked on the first try.
+This troubleshooting process — methodically isolating the failure point across CloudTrail, EventBridge, IAM permissions, and Lambda logs is, if anything, a stronger demonstration of real-world cloud security skills than if the original approach had worked on the first try.
 
 ## Future Improvements
 
